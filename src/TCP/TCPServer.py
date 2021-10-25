@@ -1,71 +1,76 @@
 import socket
-import threading
-
-# Variables for holding information about connections
-connections = []
-total_connections = 0
 
 
-# Client class, new instance created for each connected client
-# Each instance has the socket and address that is associated with items
-# Along with an assigned ID and a name chosen by the client
-class Client(threading.Thread):
-    def __init__(self, socket, address, id, name, signal):
-        threading.Thread.__init__(self)
-        self.socket = socket
-        self.address = address
-        self.id = id
-        self.name = name
-        self.signal = signal
+check_problems = ['Have you experienced any COVID-19 symptoms in the past 14 days?',
+                    'Have you been in close contact with anyone who has tested positive for COVID-19 in the past 14 days?',
+                    'Have you tested positive for COVID-19 in the past 14 days?'
+]
+class TCPServer:
 
-    def __str__(self):
-        return str(self.id) + " " + str(self.address)
+    def __init__(self, ip_address, port_number, buffer_size):
+        self.ip_address = ip_address
+        self.port_number = port_number
+        self.buffer_size = buffer_size
+        self.TCPServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
 
-    # Attempt to get data from client
-    # If unable to, assume client has disconnected and remove him from server data
-    # If able to and we get data back, print it in the server and send it back to every
-    # client aside from the client that has sent it
-    # .decode is used to convert the byte data into a printable string
-    def run(self):
-        while self.signal:
-            try:
-                data = self.socket.recv(32)
-            except:
-                print("Client " + str(self.address) + " has disconnected")
-                self.signal = False
-                connections.remove(self)
-                break
-            if data != "":
-                print("ID " + str(self.id) + ": " + str(data.decode("utf-8")))
-                for client in connections:
-                    if client.id != self.id:
-                        client.socket.sendall(data)
+    # method to start the tcp server
+    def start(self):
+        try:
+            # a hello message from server to client at the very beginning
+            self.TCPServerSocket.bind((self.ip_address, self.port_number))
+            print("TCP server starts successfully with ip", str(self.ip_address))
+            # Listen for incoming datagrams
+            while (True):
+                message, address = self.TCPServerSocket.recvfrom(self.buffer_size)
+                client_msg = "Message from Client:{}".format(message.decode())
+                client_ip = "Client IP Address:{}".format(address)
+                print(client_msg)
+                print(client_ip)
+                # send welcome message to the client
+                msgFromServer = "Hello TCP Client"
+                self.send(msgFromServer, address)
+                status = self.check(address)
+                if status:
+                    msgFromServer = 'Green Pass'
+                else:
+                    msgFromServer = 'Red Pass'
+                # return the check status to client
+                self.send(msgFromServer, address)
+        except Exception as e:
+            print(e)
 
-
-# Wait for new connections
-def newConnections(socket):
-    while True:
-        sock, address = socket.accept()
-        global total_connections
-        connections.append(Client(sock, address, total_connections, "Name", True))
-        connections[len(connections) - 1].start()
-        print("New connection at ID " + str(connections[len(connections) - 1]))
-        total_connections += 1
+    # method to send message to client
+    def send(self, msg, client_address):
+        self.TCPServerSocket.sendto(msg.encode(), client_address)
+        print("Successfully send message to client", str(client_address[0]))
 
 
-def main():
-    # Get host and port
-    host = input("Host: ")
-    port = int(input("Port: "))
+    # method to check health status
+    def check(self, client_address):
+        index = 0
+        while(index < 3):
+            self.send(check_problems[index], client_address)
+            message, address = self.TCPServerSocket.recvfrom(self.buffer_size)
+            print(message.decode().lower())
+            if (message.decode().lower() == 'no\n'):
+                index += 1
+            # red pass
+            elif (message.decode().lower() == 'yes\n'):
+                return False
+            # receive other answer, reask the question
+            else:
+                pass
+        return True
 
-    # Create new server socket
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.bind((host, port))
-    sock.listen(5)
 
-    # Create new thread to wait for connections
-    newConnectionsThread = threading.Thread(target=newConnections, args=(sock,))
-    newConnectionsThread.start()
+if __name__ == '__main__':
+
+    localIP = "127.0.0.1"
+    localPort = 20001
+    bufferSize = 1024
+
+    tcp_server = TCPServer(localIP, localPort, bufferSize)
+    tcp_server.start()
 
 
-main()
+    

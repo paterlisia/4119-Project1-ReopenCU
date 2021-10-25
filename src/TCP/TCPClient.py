@@ -1,38 +1,45 @@
-import socket
-import threading
 import sys
+import socket
 
-#Wait for incoming data from server
-#.decode is used to turn the message in bytes to a string
-def receive(socket, signal):
-    while signal:
-        try:
-            data = socket.recv(32)
-            print(str(data.decode("utf-8")))
-        except:
-            print("You have been disconnected from the server")
-            signal = False
-            break
+judge = ['Green Pass', 'Red Pass']
+class TCPClient:
 
-#Get host and port
-host = input("Host: ")
-port = int(input("Port: "))
+    def __init__(self, server_address, buffer_size) -> None:
+        self.server_address = server_address
+        self.buffer_size = buffer_size
+        # create a client tcp socket
+        self.TCPClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+    
+    # method to start a connection with tcp server
+    def start(self):
+        msgFromClient = "Hello TCP Server"
+        self.send(msgFromClient)
+        msg_recv = self.recv()
+        while True:
+            msg_recv = self.recv()
+            if msg_recv in judge:
+                break
+            # get input from keyboard output
+            response = sys.stdin.readline()
+            # send reponse back to server
+            self.send(response)
+            
 
-#Attempt connection to server
-try:
-    sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-    sock.connect((host, port))
-except:
-    print("Could not make a connection to the server")
-    input("Press enter to quit")
-    sys.exit(0)
+    # method to send message to client
+    def send(self, msg):
+        self.TCPClientSocket.sendto(msg.encode(), self.server_address)
+        print("Successfully send message to server", str(self.server_address))
 
-#Create new thread to wait for data
-receiveThread = threading.Thread(target = receive, args = (sock, True))
-receiveThread.start()
+    # method to receive message from server
+    def recv(self):
+        msgFromServer = self.TCPClientSocket.recvfrom(self.buffer_size)
+        print(msgFromServer[0].decode())
+        return msgFromServer[0].decode()
 
-#Send data to server
-#str.encode is used to turn the string message into bytes so it can be sent across the network
-while True:
-    message = input()
-    sock.sendall(str.encode(message))
+
+if __name__ == '__main__':
+
+    serverAddressPort = ("127.0.0.1", 20001)
+    bufferSize = 1024
+    tcp_client = TCPClient(serverAddressPort, bufferSize)
+    tcp_client.start()
