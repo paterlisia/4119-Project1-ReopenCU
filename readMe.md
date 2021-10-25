@@ -3,10 +3,13 @@
 An implementation of a client/server application with TCP, UDP to model the health check process
 
 ## Four classes as total
-- UDPclient.py
-- UDPserver.py
-- TCPclient.py
-- TCPserver.py
+- src
+    - UDP
+        - UDPclient.py
+        - UDPserver.py
+    - TCP
+        - TCPclient.py
+        - TCPserver.py
 
 ## Implementation details
 *Have you experienced any COVID-19 symptoms in the past 14 days?*
