@@ -8,10 +8,11 @@ class TCPClient:
         self.server_address = server_address
         self.buffer_size = buffer_size
         # create a client tcp socket
-        self.TCPClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+        self.TCPClientSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
     
     # method to start a connection with tcp server
     def start(self):
+        self.TCPClientSocket.connect(self.server_address)
         msgFromClient = "Hello TCP Server"
         self.send(msgFromClient)
         msg_recv = self.recv()
@@ -27,14 +28,14 @@ class TCPClient:
 
     # method to send message to client
     def send(self, msg):
-        self.TCPClientSocket.sendto(msg.encode(), self.server_address)
+        self.TCPClientSocket.send(msg.encode())
         print("Successfully send message to server", str(self.server_address))
 
     # method to receive message from server
     def recv(self):
-        msgFromServer = self.TCPClientSocket.recvfrom(self.buffer_size)
-        print(msgFromServer[0].decode())
-        return msgFromServer[0].decode()
+        msgFromServer = self.TCPClientSocket.recv(self.buffer_size)
+        print(msgFromServer.decode())
+        return msgFromServer.decode()
 
 
 if __name__ == '__main__':

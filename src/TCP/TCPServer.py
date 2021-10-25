@@ -11,17 +11,20 @@ class TCPServer:
         self.ip_address = ip_address
         self.port_number = port_number
         self.buffer_size = buffer_size
-        self.TCPServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_DGRAM)
+        self.TCPServerSocket = socket.socket(family=socket.AF_INET, type=socket.SOCK_STREAM)
+        self.TCPConnectionSocket = None
 
     # method to start the tcp server
     def start(self):
         try:
             # a hello message from server to client at the very beginning
             self.TCPServerSocket.bind((self.ip_address, self.port_number))
+            self.TCPServerSocket.listen(1)
             print("TCP server starts successfully with ip", str(self.ip_address))
             # Listen for incoming datagrams
             while (True):
-                message, address = self.TCPServerSocket.recvfrom(self.buffer_size)
+                self.TCPConnectionSocket, address = self.TCPServerSocket.accept()
+                message = self.TCPConnectionSocket.recv(self.buffer_size)
                 client_msg = "Message from Client:{}".format(message.decode())
                 client_ip = "Client IP Address:{}".format(address)
                 print(client_msg)
@@ -36,12 +39,13 @@ class TCPServer:
                     msgFromServer = 'Red Pass'
                 # return the check status to client
                 self.send(msgFromServer, address)
+                self.TCPConnectionSocket.close()
         except Exception as e:
-            print(e)
+            print("Error:", e)
 
     # method to send message to client
     def send(self, msg, client_address):
-        self.TCPServerSocket.sendto(msg.encode(), client_address)
+        self.TCPConnectionSocket.send(msg.encode())
         print("Successfully send message to client", str(client_address[0]))
 
 
@@ -50,7 +54,7 @@ class TCPServer:
         index = 0
         while(index < 3):
             self.send(check_problems[index], client_address)
-            message, address = self.TCPServerSocket.recvfrom(self.buffer_size)
+            message = self.TCPConnectionSocket.recv(self.buffer_size)
             print(message.decode().lower())
             if (message.decode().lower() == 'no\n'):
                 index += 1
